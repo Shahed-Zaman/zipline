@@ -688,21 +688,6 @@ class TrueRange(CustomFactor):
         )
 
 
-class MovingAverage(CustomFactor):
-    """
-    Moving Average
-    https://en.wikipedia.org/wiki/Moving_average
-
-    Generates a series of averages using a subset of data. It is often used to
-    smooth out short-term fluctuations and highlight longer-term trends.
-
-    **Default Inputs:** None
-    **Default Window Length:** None
-    """
-    def compute(self, today, assets, out, data):
-
-        out[:] = nanmean(data, axis=0)
-
 
 class MovingAverageConvergenceDivergence(CustomFactor):
     """
@@ -729,8 +714,8 @@ class MovingAverageConvergenceDivergence(CustomFactor):
     Returns
     -------
     MACD: The difference between "fast" EMA and "slow" EMA.
-    signal: THe signal_period length period EMA of the MACD line.
-    hist: Difference between MACD and signal.  (Divergence)
+    signal: The signal_period length period EMA of the MACD line.
+    hist: Difference between MACD and signal. (Divergence series)
     """
     inputs = [USEquityPricing.close]
 
