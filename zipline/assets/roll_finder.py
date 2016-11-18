@@ -104,9 +104,9 @@ class RollFinder(with_metaclass(ABCMeta, object)):
             while session_loc > -1:
                 session = sessions[session_loc]
                 if back != self._active_contract(oc, front, back, session):
+                    roll_session = sessions[session_loc]
                     break
                 session_loc -= 1
-            roll_session = sessions[session_loc + 1]
             if roll_session > start:
                 rolls.insert(0, (oc.contract_sids[i + offset],
                                  roll_session))
@@ -149,7 +149,7 @@ class VolumeRollFinder(RollFinder):
         self.session_reader = session_reader
 
     def _active_contract(self, oc, front, back, dt):
-        # FIXME: Possible vector for look ahead bias.
-        front_vol = self.session_reader.get_value(front, dt, 'volume')
-        back_vol = self.session_reader.get_value(back, dt, 'volume')
+        prev = dt - self.trading_calendar.day
+        front_vol = self.session_reader.get_value(front, prev, 'volume')
+        back_vol = self.session_reader.get_value(back, prev, 'volume')
         return back if back_vol > front_vol else front
