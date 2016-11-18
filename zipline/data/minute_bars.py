@@ -35,6 +35,7 @@ from zipline.data._minute_bar_internal import (
 from zipline.gens.sim_engine import NANOS_IN_MINUTE
 
 from zipline.data.bar_reader import BarReader, NoDataOnDate
+from zipline.data.us_equity_pricing import check_uint32_safe
 from zipline.utils.calendars import get_calendar
 from zipline.utils.cli import maybe_show_progress
 from zipline.utils.memoize import lazyval
@@ -730,15 +731,26 @@ class BcolzMinuteBarWriter(object):
 
         ohlc_ratio = self.ohlc_ratio_for_sid(sid)
 
-        def convert_col(col):
-            """Adapt float column into a uint32 column.
-            """
-            return (np.nan_to_num(col) * ohlc_ratio).astype(np.uint32)
+        def convert_col(col, name):
+            """Adapt float column into a uint32 column."""
+            scaled_col = np.nan_to_num(col) * ohlc_ratio
 
-        open_col[dt_ixs] = convert_col(cols['open'])
-        high_col[dt_ixs] = convert_col(cols['high'])
-        low_col[dt_ixs] = convert_col(cols['low'])
-        close_col[dt_ixs] = convert_col(cols['close'])
+            try:
+                check_uint32_safe(scaled_col.max(), name)
+            except ValueError:
+                logger.error(
+                    'Values for sid={}, col={} contain some too large for '
+                    'uint32 (max={}), filtering them out',
+                    sid, name, scaled_col.max(),
+                )
+                return scaled_col[scaled_col <= np.iinfo(np.uint32).max]
+            else:
+                return scaled_col.astype(np.uint32)
+
+        open_col[dt_ixs] = convert_col(cols['open'], 'open')
+        high_col[dt_ixs] = convert_col(cols['high'], 'high')
+        low_col[dt_ixs] = convert_col(cols['low'], 'low')
+        close_col[dt_ixs] = convert_col(cols['close'], 'close')
         vol_col[dt_ixs] = cols['volume'].astype(np.uint32)
 
         table.append([
